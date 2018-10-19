@@ -1,44 +1,50 @@
 package com.thebali.allahhuakbarringtone
 
+import android.Manifest
 import android.content.ContentValues
-import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.media.MediaPlayer
 import android.net.Uri
-import android.util.AttributeSet
-import android.util.Log
-import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
 import android.media.RingtoneManager
-import android.media.Ringtone
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio.Media.getContentUriForPath
 import java.io.File
-import android.app.NotificationManager
-import android.app.NotificationChannel
-import android.media.AudioAttributes
 import org.jetbrains.anko.*
+import permissions.dispatcher.*
+import android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
+import android.content.Intent
+import android.provider.Settings
+import android.provider.Settings.System.canWrite
 
 
+
+@RuntimePermissions
 class MainActivity : AppCompatActivity(), AnkoLogger {
 
-    //val TAG = "aha"
+    val TAG = "ahaaaaa"
     // changing applicationContext does not work, nor the baseContext helps.
     // using the ActivityName as class with package name is a required.
-    private val soundUri = Uri.parse("android.resource://"+ MainActivity::class.java.`package`.name +"/"+ R.raw.audio_allah)
-    private val outPath = Environment.getExternalStorageDirectory().absolutePath
+    private val soundUri = Uri.parse("android.resource://"+ MainActivity::class.java.`package`!!.name +"/"+ R.raw.audio_allah)
+    private val outPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RINGTONES).absolutePath
 
     private val log = AnkoLogger(this.javaClass)
-    private val Tag = AnkoLogger("my_tag")
+
+    //String PERM1 = Manifest.permission.WRITE_EXTERNAL_STORAGE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        btn1.setOnClickListener { ringtoneApply() }
+        btn1.setOnClickListener {
+            saRequestPerms()
+            ringtoneApplyWithPermissionCheck()
+        }
         img1.setOnClickListener { ringPhone() }
+
+        // check permissions for the storage
+        //checkRequestPermission()
 
     }
 
@@ -46,6 +52,7 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
 //    override fun onCreateView(parent: View?, name: String?, context: Context?, attrs: AttributeSet?) {
 //        super.onCreateView(parent, name, context, attrs)
 //    }
+
 
 
     /*
@@ -74,32 +81,60 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
     */
 
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // NOTE: delegate the permission handling to generated function
+        onRequestPermissionsResult(requestCode, grantResults)
+    }
+
+
+    fun saRequestPerms(){
+        val context = applicationContext
+
+        // Check whether has the write settings permission or not.
+        val settingsCanWrite = Settings.System.canWrite(context)
+
+        if (!settingsCanWrite) {
+            // If do not have write settings permission then open the Can modify system settings panel.
+            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+            startActivity(intent)
+        } else {
+            // If has permission then show an alert dialog with message.
+            alert("you have permissions now.").show()
+        }
+    }
 
 
 
 
-    private fun ringtoneApply(){
-
+    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    fun ringtoneApply(){
 
         val values = ContentValues()
 
-        log.warn("$soundUri - is displayed.")
+        log.warn("$soundUri - sound Uri is displayed.")
 
 
-        val file1 = File(outPath, "allahakbar.mp3")
+        //toast("this the "+values.toString())
+
+        val file1 = File.createTempFile(outPath, "allahakbar.mp3")
         values.put(MediaStore.MediaColumns.DATA, file1.absolutePath)
         values.put(MediaStore.MediaColumns.TITLE, R.string.allah1)
         values.put(MediaStore.MediaColumns.SIZE, file1.length())
         values.put(MediaStore.MediaColumns.MIME_TYPE, "audio/mpeg")   // assuming it's an mpeg, of course
         values.put(MediaStore.Audio.Media.ARTIST, R.string.artist_name)
-// values.put(MediaStore.Audio.Media.DURATION, duration);  // doesn't appear to be necessary if you don't know
+        // values.put(MediaStore.Audio.Media.DURATION, duration);  // doesn't appear to be necessary if you don't know
         values.put(MediaStore.Audio.Media.IS_RINGTONE, true)
+
+        
 
         val uri1 = getContentUriForPath(file1.absolutePath)
         val newUri = contentResolver.insert(uri1, values)
 
+        toast("this si the toast"+ outPath!!.toString())
+
         //val newUri = getContentResolver().insert(uri, values)
-        val rMgr = RingtoneManager(applicationContext)
+        //val rMgr = RingtoneManager(applicationContext)
 
         try {
             RingtoneManager.setActualDefaultRingtoneUri(applicationContext, RingtoneManager.TYPE_RINGTONE, newUri)
@@ -114,6 +149,7 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
 
         //best technique to resources files path
         val r = RingtoneManager.getRingtone(applicationContext, soundUri)
+        //r.streamType = 10
         r.play()
 
         // default notification tone.
