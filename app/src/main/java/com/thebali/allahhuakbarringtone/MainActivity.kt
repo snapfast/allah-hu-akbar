@@ -1,35 +1,29 @@
 package com.thebali.allahhuakbarringtone
 
 import android.Manifest
-import android.content.ContentValues
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.net.Uri
 import kotlinx.android.synthetic.main.activity_main.*
 import android.media.RingtoneManager
 import android.os.Environment
-import android.provider.MediaStore
-import android.provider.MediaStore.Audio.Media.getContentUriForPath
-import java.io.File
 import org.jetbrains.anko.*
 import permissions.dispatcher.*
-import android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
 import android.content.Intent
 import android.provider.Settings
-import android.provider.Settings.System.canWrite
-
+import java.io.*
+import java.lang.Error
 
 
 @RuntimePermissions
 class MainActivity : AppCompatActivity(), AnkoLogger {
 
-    val TAG = "ahaaaaa"
     // changing applicationContext does not work, nor the baseContext helps.
     // using the ActivityName as class with package name is a required.
-    private val soundUri = Uri.parse("android.resource://"+ MainActivity::class.java.`package`!!.name +"/"+ R.raw.audio_allah)
-    private val outPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RINGTONES).absolutePath
+    private val soundUri = Uri.parse("android.resource://" + MainActivity::class.java.`package`!!.name + "/" + R.raw.audio_allah)
+    //private val outPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS).absolutePath
 
-    private val log = AnkoLogger(this.javaClass)
+    private val logger1 = AnkoLogger(this.javaClass)
 
     //String PERM1 = Manifest.permission.WRITE_EXTERNAL_STORAGE
 
@@ -38,25 +32,25 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
         setContentView(R.layout.activity_main)
 
         btn1.setOnClickListener {
-            saRequestPerms()
             ringtoneApplyWithPermissionCheck()
-        }
-        img1.setOnClickListener { ringPhone() }
 
-        // check permissions for the storage
-        //checkRequestPermission()
+            if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
+                toast(Environment.getExternalStorageState().toString())
+            }
+        }
+        btn2.setOnClickListener { saRequestPerms() }
+        img1.setOnClickListener { ringPhone() }
 
     }
 
-    //its fucking too soon to call the views
-//    override fun onCreateView(parent: View?, name: String?, context: Context?, attrs: AttributeSet?) {
-//        super.onCreateView(parent, name, context, attrs)
-//    }
-
-
-
     /*
     *
+    * *
+    * *
+    * Separate notification material
+    *
+    * *
+    * *
     private fun ringtoneApply(){
         //val soundUri = Uri.parse("android.resource://" + applicationContext.packageName + "/" + R.raw.audio_allah)
 
@@ -81,6 +75,13 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
     */
 
 
+    /**
+     * the anko and permissionsDispatcher are working great
+     *
+     *
+     *
+     *
+     * */
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // NOTE: delegate the permission handling to generated function
@@ -88,11 +89,151 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
     }
 
 
-    fun saRequestPerms(){
-        val context = applicationContext
+    /**
+     *
+     * Fuck this version of the ringtoneApply()
+     *
+     * we need to make new fresh version according to our new requirements.
+     *
+     *
 
+    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    fun ringtoneApply(){
+
+    val values = ContentValues()
+
+    log.warn("$soundUri - sound Uri is displayed.")
+
+
+    //toast("this the "+values.toString())
+
+    val file1 = File(outPath, "allahakbar.mp3")
+
+
+    //        val os = FileOutputStream(file1)
+    //        //val data = "This is the content of my file"
+    //        os.write(R.raw.audio_allah)
+    //        os.close()
+
+
+    // verification, if file exists,
+
+
+    // read the file from the resources
+    val f = baseContext.resources.openRawResource(R.raw.audio_allah)
+    val size = f.available()
+
+    val fsf = f.readBytes()
+    f.close()
+
+    // write the file to the location outPath
+    val save = FileOutputStream(file1)
+    save.write(fsf)
+    save.flush()
+    save.close()
+
+    // the verification of the file
+    val file2 = File(outPath, "allahakbar.mp3")
+    if (file2.exists()){
+    longToast("the file exists..")
+    log.warn { "the file exists" }
+    }
+    else{
+    log.warn(" te does nit exists")
+    }
+
+
+    values.put(MediaStore.MediaColumns.DATA, R.raw.audio_allah)
+    values.put(MediaStore.MediaColumns.TITLE, R.string.allah1)
+    values.put(MediaStore.MediaColumns.SIZE, file1.length())
+    values.put(MediaStore.MediaColumns.MIME_TYPE, "audio/mpeg")   // assuming it's an mpeg, of course
+    values.put(MediaStore.Audio.Media.ARTIST, R.string.artist_name)
+    // values.put(MediaStore.Audio.Media.DURATION, duration);  // doesn't appear to be necessary if you don't know
+    values.put(MediaStore.Audio.Media.IS_NOTIFICATION, true)
+
+
+    val uri1 = getContentUriForPath(file1.absolutePath)
+    val newUri = contentResolver.insert(uri1, values)
+
+    toast("this si the toast"+ outPath!!.toString())
+
+    //val newUri = getContentResolver().insert(uri, values)
+    //val rMgr = RingtoneManager(applicationContext)
+
+    try {
+    RingtoneManager.setActualDefaultRingtoneUri(applicationContext, RingtoneManager.TYPE_NOTIFICATION, newUri)
+    }
+    catch (e: Exception){
+    log.error(e)
+    }
+    }
+
+     *
+     */
+
+    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    fun ringtoneApply() {
+        // Create a path where we will place our private file on external
+        // storage.
+
+        val file = File(getExternalFilesDir(Environment.DIRECTORY_NOTIFICATIONS), "allah_akbar.mp3")
+
+        if (!file.exists()) {
+            try {
+                // Very simple code to copy a picture from the application's
+                // resource into the external file.  Note that this code does
+                // no error checking, and assumes the picture is small (does not
+                // try to copy it in chunks).  Note that if external storage is
+                // not currently mounted this will silently fail.
+                val in1 = resources.openRawResource(R.raw.audio_allah)
+                val out1 = FileOutputStream(file)
+
+                //val data = ByteArray(in1.available())  // kotlin equivalent of the java byte
+                val data = in1.readBytes() // kotlin.io designed functions for this task.
+
+                in1.read(data)
+                out1.write(data)
+                in1.close()
+                out1.close()
+            } catch (e: IOException) {
+                // Unable to create file, likely because external storage is
+                // not currently mounted.
+                logger1.warn("ExternalStorage Error writing " + file.toString())
+            }
+        }
+        else {
+            logger1.warn("message:: file already exists, trying to apply the ringtone.")
+        }
+
+        try {
+            val fileURI = Uri.fromFile(file)
+            RingtoneManager.setActualDefaultRingtoneUri(applicationContext, RingtoneManager.TYPE_NOTIFICATION, fileURI)
+            toast("Ringtone is applied...")
+        } catch (e: Error) {
+            logger1.error { e }
+            toast("Error Occurred: See log for details.")
+        }
+
+
+
+
+    }
+
+
+    private fun ringPhone() {
+
+        //best technique to resources files path
+        val r = RingtoneManager.getRingtone(applicationContext, soundUri)
+        //r.streamType = 10
+        r.play()
+
+    }
+
+
+
+    private fun saRequestPerms() {
         // Check whether has the write settings permission or not.
-        val settingsCanWrite = Settings.System.canWrite(context)
+        val settingsCanWrite = Settings.System.canWrite(applicationContext)
 
         if (!settingsCanWrite) {
             // If do not have write settings permission then open the Can modify system settings panel.
@@ -100,63 +241,20 @@ class MainActivity : AppCompatActivity(), AnkoLogger {
             startActivity(intent)
         } else {
             // If has permission then show an alert dialog with message.
-            alert("you have permissions now.").show()
+            toast("WRITE SETTINGS Permission has been granted already.")
+            //alert("you have permissions now.").show()
         }
     }
 
 
+//
+//    private fun hasFile(): Boolean {
+//        // Get path for the file on external storage.  If external
+//        // storage is not currently mounted this will fail.
+//        //val file = File(getExternalFilesDir(Environment.DIRECTORY_NOTIFICATIONS), "allah_akbar.mp3")
+//        return file.exists()
+//    }
 
 
-    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    fun ringtoneApply(){
-
-        val values = ContentValues()
-
-        log.warn("$soundUri - sound Uri is displayed.")
-
-
-        //toast("this the "+values.toString())
-
-        val file1 = File.createTempFile(outPath, "allahakbar.mp3")
-        values.put(MediaStore.MediaColumns.DATA, file1.absolutePath)
-        values.put(MediaStore.MediaColumns.TITLE, R.string.allah1)
-        values.put(MediaStore.MediaColumns.SIZE, file1.length())
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "audio/mpeg")   // assuming it's an mpeg, of course
-        values.put(MediaStore.Audio.Media.ARTIST, R.string.artist_name)
-        // values.put(MediaStore.Audio.Media.DURATION, duration);  // doesn't appear to be necessary if you don't know
-        values.put(MediaStore.Audio.Media.IS_RINGTONE, true)
-
-        
-
-        val uri1 = getContentUriForPath(file1.absolutePath)
-        val newUri = contentResolver.insert(uri1, values)
-
-        toast("this si the toast"+ outPath!!.toString())
-
-        //val newUri = getContentResolver().insert(uri, values)
-        //val rMgr = RingtoneManager(applicationContext)
-
-        try {
-            RingtoneManager.setActualDefaultRingtoneUri(applicationContext, RingtoneManager.TYPE_RINGTONE, newUri)
-        }
-        catch (e: Exception){
-            log.error(e)
-        }
-    }
-
-
-    private fun ringPhone(){
-
-        //best technique to resources files path
-        val r = RingtoneManager.getRingtone(applicationContext, soundUri)
-        //r.streamType = 10
-        r.play()
-
-        // default notification tone.
-        // Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-
-        //val resID = resources.getIdentifier("audio_allah.mp3", "raw", packageName)
-//        val mp = MediaPlayer.create(applicationContext, uriID)
-//        mp.start()
-    }
 }
+

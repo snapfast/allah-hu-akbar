@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Allah hu Akbar! Ringtone</string>
-    <string name="allah1">Allah hu Akbar 1</string>
+    <string name="allah1">AllahHuAkbar1.mp3</string>
     <string name="artist_name">allah_hu_akbar_app</string>
+    <string name="Instructions">Note: This app requires permission for setting the ringtone on Android Version 8 and above.
+    Use image to listen to the ringtone. :-b</string>
+    <string name="apply_notification_tone">Apply Notification tone!</string>
+    <string name="muslm">reli image</string>
+    <string name="write_settings">Give Write Settings Permission</string>
 </resources>
